@@ -4,18 +4,16 @@ import (
 	"log"
 	"os"
 
+	"github.com/gbadegesintestimony/jwt-authentication/config"
 	"github.com/gbadegesintestimony/jwt-authentication/database"
 	"github.com/gbadegesintestimony/jwt-authentication/models"
 	"github.com/gbadegesintestimony/jwt-authentication/routes"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
 	// Load .env file
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	config.LoadEnv()
 
 	// Initialize database
 	database.Connect()
