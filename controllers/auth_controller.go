@@ -15,8 +15,8 @@ import (
 
 func Register(c *gin.Context) {
 	var input models.RegisterRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := c.BindJSON(&input); err != nil {
+		// c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -43,8 +43,8 @@ func Register(c *gin.Context) {
 
 func Login(c *gin.Context) {
 	var input models.LoginRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := c.BindJSON(&input); err != nil {
+		// c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -59,27 +59,8 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Create JWT
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "dev-secret" // fallback (use env in production)
-	}
-	hoursStr := os.Getenv("JWT_EXPIRATION_HOURS")
-	hours := 24
-	if hoursStr != "" {
-		if h, err := strconv.Atoi(hoursStr); err == nil {
-			hours = h
-		}
-	}
-
-	claims := jwt.MapClaims{
-		"user_id": user.ID,
-		"exp":     time.Now().Add(time.Duration(hours) * time.Hour).Unix(),
-		"iat":     time.Now().Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString([]byte(secret))
+	// Generate JWT token
+	ss, err := generateToken(user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
 		return

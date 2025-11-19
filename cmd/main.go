@@ -38,22 +38,3 @@ func main() {
 		log.Fatal("Failed to start server:", err)
 	}
 }
-
-// func main() {
-// 	// load .env early if needed
-// 	if _, err := os.Stat(".env"); err == nil {
-// 		// godotenv loaded inside database.Connect; optional here
-// 	}
-
-// 	database.Connect()
-
-// 	// Migrate models
-// 	if err := database.DB.AutoMigrate(&models.User{}); err != nil {
-// 		log.Fatal("AutoMigrate error:", err)
-// 	}
-
-// 	r := gin.Default()
-// 	routes.Setup(r)
-
-// 	r.Run(":8080")
-// }
