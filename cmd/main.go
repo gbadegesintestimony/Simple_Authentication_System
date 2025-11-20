@@ -28,7 +28,12 @@ func main() {
 	routes.Setup(r)
 
 	// Get server port from environment variable
-	port := os.Getenv("SERVER_PORT")
+	// Render (and many platforms) provide the port via `PORT`.
+	// Fall back to `SERVER_PORT` for local .env compatibility.
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = os.Getenv("SERVER_PORT")
+	}
 	if port == "" {
 		port = "8080" // default port if not specified
 	}
