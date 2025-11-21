@@ -14,17 +14,6 @@ var DB *gorm.DB
 
 func Connect() {
 	_ = godotenv.Load()
-	// If a full DATABASE_URL is provided (e.g. by Render), prefer that.
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL != "" {
-		db, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{})
-		if err != nil {
-			log.Fatal("Failed to connect to the Database", err)
-		}
-
-		DB = db
-		return
-	}
 	host := os.Getenv("HOST")
 	port := os.Getenv("DB_PORT")
 	user := os.Getenv("USER")
