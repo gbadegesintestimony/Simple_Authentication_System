@@ -29,4 +29,5 @@ func Connect() {
 	}
 
 	DB = db
+	fmt.Println("Database Succesfully Created")
 }
