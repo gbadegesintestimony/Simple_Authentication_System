@@ -27,8 +27,11 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	// create user with first and last name; keep Name for backward compatibility
 	user := models.User{
-		Name:         input.Name,
+		FirstName:    input.FirstName,
+		LastName:     input.LastName,
+		Name:         input.FirstName + " " + input.LastName,
 		Email:        input.Email,
 		PasswordHash: string(hashed),
 	}
@@ -38,7 +41,11 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "registration successful"})
+	c.JSON(http.StatusCreated, gin.H{
+		"message":    "registration successful",
+		"first_name": user.FirstName,
+		"last_name":  user.LastName,
+	})
 }
 
 func Login(c *gin.Context) {

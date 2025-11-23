@@ -52,7 +52,7 @@ func TestRegisterLoginChangeProfile(t *testing.T) {
 	g := setupTestServer(t)
 
 	// Register
-	regBody := models.RegisterRequest{Name: "Alice", Email: "alice@example.com", Password: "password123"}
+	regBody := models.RegisterRequest{FirstName: "Alice", LastName: "Smith", Email: "alice@example.com", Password: "password123"}
 	b, _ := json.Marshal(regBody)
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")

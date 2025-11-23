@@ -9,7 +9,8 @@ import (
 )
 
 type UpdateUserInput struct {
-	Name string `json:"name"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
 }
 
 func GetProfile(c *gin.Context) {
@@ -27,9 +28,10 @@ func GetProfile(c *gin.Context) {
 
 	// Don't return password hash
 	c.JSON(http.StatusOK, gin.H{
-		"id":    user.ID,
-		"name":  user.Name,
-		"email": user.Email,
+		"id":         user.ID,
+		"first_name": user.FirstName,
+		"last_name":  user.LastName,
+		"email":      user.Email,
 	})
 }
 
@@ -47,7 +49,14 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	user.Name = input.Name
+	if input.FirstName != "" {
+		user.FirstName = input.FirstName
+	}
+	if input.LastName != "" {
+		user.LastName = input.LastName
+	}
+	// keep Name in sync
+	user.Name = user.FirstName + " " + user.LastName
 	database.DB.Save(&user)
 
 	c.JSON(http.StatusOK, gin.H{"message": "profile updated"})
