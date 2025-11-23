@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gbadegesintestimony/jwt-authentication/database"
@@ -20,6 +21,25 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	// Determine first and last name. Prefer explicit fields; fall back to legacy `name`.
+	first := input.FirstName
+	last := input.LastName
+	if first == "" && last == "" {
+		if input.Name != "" {
+			parts := strings.Fields(input.Name)
+			if len(parts) == 1 {
+				first = parts[0]
+				last = ""
+			} else if len(parts) > 1 {
+				first = strings.Join(parts[:len(parts)-1], " ")
+				last = parts[len(parts)-1]
+			}
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "first_name/last_name or name is required"})
+			return
+		}
+	}
+
 	// Hash password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -28,10 +48,11 @@ func Register(c *gin.Context) {
 	}
 
 	// create user with first and last name; keep Name for backward compatibility
+	// Build user record (keep `Name` for compatibility)
 	user := models.User{
-		FirstName:    input.FirstName,
-		LastName:     input.LastName,
-		Name:         input.FirstName + " " + input.LastName,
+		FirstName:    first,
+		LastName:     last,
+		Name:         strings.TrimSpace(first + " " + last),
 		Email:        input.Email,
 		PasswordHash: string(hashed),
 	}
