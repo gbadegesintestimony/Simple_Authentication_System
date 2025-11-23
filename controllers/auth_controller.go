@@ -94,7 +94,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": ss})
+	c.JSON(http.StatusOK, gin.H{"message": "Login Successful", "token": ss})
 }
 
 // generateToken creates a new JWT token for a user
