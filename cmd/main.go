@@ -17,9 +17,6 @@ func main() {
 	// Initialize database
 	database.Connect()
 
-	// Auto migrate the database
-	// database.DB.AutoMigrate(&models.User{})
-
 	// Create a new gin engine
 	r := gin.Default()
 
