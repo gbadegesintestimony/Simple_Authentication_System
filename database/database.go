@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/gbadegesintestimony/jwt-authentication/models"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -29,5 +30,8 @@ func Connect() {
 	}
 
 	DB = db
+	if err := DB.AutoMigrate(&models.User{}); err != nil {
+		log.Fatal("Failed to migrate database:", err)
+	}
 	fmt.Println("Database Succesfully Created")
 }

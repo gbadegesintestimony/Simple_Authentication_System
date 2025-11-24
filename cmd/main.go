@@ -6,7 +6,6 @@ import (
 
 	"github.com/gbadegesintestimony/jwt-authentication/config"
 	"github.com/gbadegesintestimony/jwt-authentication/database"
-	"github.com/gbadegesintestimony/jwt-authentication/models"
 	"github.com/gbadegesintestimony/jwt-authentication/routes"
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +18,7 @@ func main() {
 	database.Connect()
 
 	// Auto migrate the database
-	database.DB.AutoMigrate(&models.User{})
+	// database.DB.AutoMigrate(&models.User{})
 
 	// Create a new gin engine
 	r := gin.Default()
