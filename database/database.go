@@ -32,6 +32,7 @@ func Connect() {
 	if err := DB.AutoMigrate(&models.User{}); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
+
 	DB = db
 	fmt.Println("Database Succesfully Created and Migrated")
 }
