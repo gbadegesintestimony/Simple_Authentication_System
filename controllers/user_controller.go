@@ -59,5 +59,17 @@ func UpdateProfile(c *gin.Context) {
 	user.Name = user.FirstName + " " + user.LastName
 	database.DB.Save(&user)
 
-	c.JSON(http.StatusOK, gin.H{"message": "profile updated"})
+	userResponse := models.UpdateResponse{
+		Message:       "Profile updated successfully",
+		Firstname:     user.FirstName,
+		Lastname:      user.LastName,
+		UpdateAt:      user.UpdatedAt.Format("2006-01-02 15:04:05"),
+		EmailVerified: false, // Placeholder; implement email verification logic as needed
+	}
+	response := models.SuccessResponse{}
+	response.Success.Status = 200
+	response.Success.Message = "Profile updated successfully"
+	response.Success.Data = userResponse
+
+	c.JSON(http.StatusOK, response)
 }

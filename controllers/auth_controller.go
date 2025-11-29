@@ -61,12 +61,24 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "email already in use or invalid"})
 		return
 	}
+	token, _ := generateToken(user.ID)
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message":    "registration successful",
-		"first_name": user.FirstName,
-		"last_name":  user.LastName,
-	})
+	userResponse := models.DetailedUserResponse{
+		ID:            user.ID,
+		Email:         user.Email,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+		EmailVerified: false,
+	}
+	response := models.SuccessResponse{}
+	response.Success.Status = http.StatusCreated
+	response.Success.Data = models.AuthData{
+		User:  userResponse,
+		Token: token,
+	}
+
+	c.JSON(http.StatusCreated, response)
 }
 
 func Login(c *gin.Context) {
@@ -88,13 +100,29 @@ func Login(c *gin.Context) {
 	}
 
 	// Generate JWT token
-	ss, err := generateToken(user.ID)
+	token, err := generateToken(user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Login Successful", "token": ss})
+	userResponse := models.DetailedUserResponse{
+		ID:            user.ID,
+		Email:         user.Email,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+		EmailVerified: false,
+	}
+	response := models.SuccessResponse{}
+	response.Success.Status = http.StatusOK
+	response.Success.Data = models.AuthData{
+		User:  userResponse,
+		Token: token,
+	}
+
+	c.JSON(http.StatusOK, response)
+
 }
 
 // generateToken creates a new JWT token for a user
