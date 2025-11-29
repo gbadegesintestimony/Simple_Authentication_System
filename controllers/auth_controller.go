@@ -73,6 +73,7 @@ func Register(c *gin.Context) {
 	}
 	response := models.SuccessResponse{}
 	response.Success.Status = http.StatusCreated
+	response.Success.Message = "User Registered successful"
 	response.Success.Data = models.AuthData{
 		User:  userResponse,
 		Token: token,
@@ -116,6 +117,7 @@ func Login(c *gin.Context) {
 	}
 	response := models.SuccessResponse{}
 	response.Success.Status = http.StatusOK
+	response.Success.Message = "Login successful"
 	response.Success.Data = models.AuthData{
 		User:  userResponse,
 		Token: token,
