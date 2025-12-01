@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	utils "github.com/gbadegesintestimony/jwt-authentication/Utils"
 	"github.com/gbadegesintestimony/jwt-authentication/database"
 	"github.com/gbadegesintestimony/jwt-authentication/models"
+	"github.com/gbadegesintestimony/jwt-authentication/utils"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
