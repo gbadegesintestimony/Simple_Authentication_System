@@ -1,6 +1,10 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type User struct {
 	gorm.Model
@@ -9,6 +13,8 @@ type User struct {
 	Name         string `json:"name"`
 	Email        string `json:"email" gorm:"uniqueIndex;not null"`
 	PasswordHash string `json:"-" gorm:"not null"`
+	ResetToken   string `json:"-"` // for password resets
+	ResetExpiry  time.Time
 }
 
 type RegisterRequest struct {

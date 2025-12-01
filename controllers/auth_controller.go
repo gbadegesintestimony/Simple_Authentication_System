@@ -2,15 +2,13 @@ package controllers
 
 import (
 	"net/http"
-	"os"
-	"strconv"
 	"strings"
 	"time"
 
+	utils "github.com/gbadegesintestimony/jwt-authentication/Utils"
 	"github.com/gbadegesintestimony/jwt-authentication/database"
 	"github.com/gbadegesintestimony/jwt-authentication/models"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -61,7 +59,7 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "email already in use or invalid"})
 		return
 	}
-	token, _ := generateToken(user.ID)
+	token, _ := utils.GenerateToken(32)
 
 	userResponse := models.DetailedUserResponse{
 		ID:            user.ID,
@@ -101,7 +99,7 @@ func Login(c *gin.Context) {
 	}
 
 	// Generate JWT token
-	token, err := generateToken(user.ID)
+	token, err := utils.GenerateToken(user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
 		return
@@ -127,36 +125,11 @@ func Login(c *gin.Context) {
 
 }
 
-// generateToken creates a new JWT token for a user
-func generateToken(userID uint) (string, error) {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "dev-secret"
-	}
-
-	hoursStr := os.Getenv("JWT_EXPIRATION_HOURS")
-	hours := 24
-	if hoursStr != "" {
-		if h, err := strconv.Atoi(hoursStr); err == nil {
-			hours = h
-		}
-	}
-
-	claims := jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(time.Duration(hours) * time.Hour).Unix(),
-		"iat":     time.Now().Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
-}
-
 // ChangePassword allows an authenticated user to change their password
 func ChangePassword(c *gin.Context) {
 	var input models.ChangePasswordRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := c.BindJSON(&input); err != nil {
+		// c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})s
 		return
 	}
 
@@ -198,4 +171,66 @@ func ChangePassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "password updated"})
+}
+
+func ForgotPassword(c *gin.Context) {
+	var body struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+	if err := c.BindJSON(&body); err != nil {
+		return
+	}
+
+	var user models.User
+	if err := database.DB.Where("email = ?", body.Email).First(&user).Error; err != nil {
+		// To prevent email enumeration, respond with success even if user not found
+		c.JSON(http.StatusOK, gin.H{"message": "if the email exists, a reset link has been sent"})
+		return
+	}
+
+	resetToken := utils.GenerateRandomToken(32)
+	expiration := time.Now().Add(1 * time.Hour)
+
+	user.ResetToken = resetToken
+	user.ResetExpiry = expiration
+	database.DB.Save(&user)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":     " Password reset link has been sent",
+		"reset_token": resetToken,
+		"expires_at":  expiration.Format(time.RFC3339),
+	})
+}
+
+func ResetPassword(c *gin.Context) {
+	var input struct {
+		Token       string `json:"token"`
+		NewPassword string `json:"new_password"`
+	}
+	if err := c.BindJSON(&input); err != nil {
+		return
+	}
+
+	var user models.User
+	if err := database.DB.Where("reset_token = ?", input.Token).First(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired reset token"})
+		return
+	}
+
+	if time.Now().After(user.ResetExpiry) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "reset token has expired"})
+		return
+	}
+
+	newHashed, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash new password"})
+		return
+	}
+
+	user.PasswordHash = string(newHashed)
+	user.ResetToken = ""
+	database.DB.Save(&user)
+
+	c.JSON(http.StatusOK, gin.H{"message": "password has been reset"})
 }
