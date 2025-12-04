@@ -38,6 +38,12 @@ func Register(c *gin.Context) {
 		}
 	}
 
+	var existingUser models.User
+	if err := database.DB.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email already in use"})
+		return
+	}
+
 	// Hash password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
