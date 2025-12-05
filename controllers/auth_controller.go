@@ -140,7 +140,7 @@ func ChangePassword(c *gin.Context) {
 	}
 
 	// get user id from context (set by middleware)
-	uid, exists := c.Get("user_id")
+	uid, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
