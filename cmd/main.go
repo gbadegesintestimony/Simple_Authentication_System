@@ -7,6 +7,7 @@ import (
 	"github.com/gbadegesintestimony/jwt-authentication/config"
 	"github.com/gbadegesintestimony/jwt-authentication/database"
 	"github.com/gbadegesintestimony/jwt-authentication/routes"
+	"github.com/gbadegesintestimony/jwt-authentication/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,6 +23,8 @@ func main() {
 
 	// Setup routes
 	routes.Setup(r)
+
+	utils.Init()
 
 	// Get server port from environment variable
 	port := os.Getenv("SERVER_PORT")
