@@ -13,8 +13,9 @@ type User struct {
 	Name         string `json:"name"`
 	Email        string `json:"email" gorm:"uniqueIndex;not null"`
 	PasswordHash string `json:"-" gorm:"not null"`
-	ResetToken   string `json:"-"` // for password resets
-	ResetExpiry  time.Time
+
+	ResetOTP    string    `json:"-"` // OTP for password reset
+	ResetExpiry time.Time `json:"-"` // Expiry time for the OTP
 }
 
 type RegisterRequest struct {

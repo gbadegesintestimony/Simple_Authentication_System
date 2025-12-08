@@ -2,7 +2,8 @@ package utils
 
 import (
 	"crypto/rand"
-	"encoding/hex"
+	"fmt"
+	"math/big"
 	"os"
 	"strconv"
 	"time"
@@ -62,8 +63,11 @@ func ParseToken(tokenStr string) (*Claims, error) {
 	return nil, jwt.ErrSignatureInvalid
 }
 
-func GenerateRandomToken(n int) string {
-	bytes := make([]byte, n)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
+func GenerateOTP() (string, error) {
+	max := big.NewInt(999999)
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%06d", n.Int64()), nil
 }

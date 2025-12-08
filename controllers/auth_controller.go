@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -180,62 +181,97 @@ func ChangePassword(c *gin.Context) {
 }
 
 func ForgotPassword(c *gin.Context) {
-	var body struct {
+	type Body struct {
 		Email string `json:"email" binding:"required,email"`
 	}
-	if err := c.BindJSON(&body); err != nil {
+
+	var req Body
+	if err := c.ShouldBindJSON(&req); err != nil {
+
 		return
 	}
 
 	var user models.User
-	if err := database.DB.Where("email = ?", body.Email).First(&user).Error; err != nil {
+	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		// To prevent email enumeration, respond with success even if user not found
 		c.JSON(http.StatusOK, gin.H{"message": "if the email exists, a reset link has been sent"})
 		return
 	}
 
-	resetToken := utils.GenerateRandomToken(32)
-	expiration := time.Now().Add(1 * time.Hour)
+	otp, err := utils.GenerateOTP()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate OTP"})
+		return
+	}
 
-	user.ResetToken = resetToken
-	user.ResetExpiry = expiration
+	user.ResetOTP = otp
+	user.ResetExpiry = time.Now().Add(15 * time.Minute)
 	database.DB.Save(&user)
 
+	fmt.Println("Password Reset OTP:", otp)
+
 	c.JSON(http.StatusOK, gin.H{
-		"message":     " Password reset link has been sent",
-		"reset_token": resetToken,
-		"expires_at":  expiration.Format(time.RFC3339),
+		"message":   " OTP has been sent to your email",
+		"reset_otp": otp, // In real application, do not send OTP in response
 	})
 }
 
-func ResetPassword(c *gin.Context) {
-	var input struct {
-		Token       string `json:"token"`
-		NewPassword string `json:"new_password"`
+func VerifyOTP(c *gin.Context) {
+	type Request struct {
+		Email string `json:"email" binding:"required,email"`
+		OTP   string `json:"otp" binding:"required"`
 	}
-	if err := c.BindJSON(&input); err != nil {
+	var req Request
+	if err := c.BindJSON(&req); err != nil {
 		return
 	}
 
 	var user models.User
-	if err := database.DB.Where("reset_token = ?", input.Token).First(&user).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired reset token"})
+	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email or OTP"})
 		return
 	}
 
-	if time.Now().After(user.ResetExpiry) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "reset token has expired"})
+	if user.ResetOTP != req.OTP || time.Now().After(user.ResetExpiry) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired OTP"})
 		return
 	}
 
-	newHashed, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash new password"})
+	c.JSON(http.StatusOK, gin.H{"message": "OTP verified successfully"})
+}
+
+func ResetPassword(c *gin.Context) {
+	type Input struct {
+		Email           string `json:"email" binding:"required,email"`
+		OTP             string `json:"otp" binding:"required"`
+		NewPassword     string `json:"new_password" binding:"required,min=6"`
+		ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=NewPassword"`
+	}
+
+	var req Input
+	if err := c.BindJSON(&req); err != nil {
 		return
 	}
 
+	if req.NewPassword != req.ConfirmPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "new password and confirm password do not match"})
+		return
+	}
+
+	var user models.User
+	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email or OTP"})
+		return
+	}
+
+	if user.ResetOTP != req.OTP || time.Now().After(user.ResetExpiry) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired OTP"})
+		return
+	}
+
+	newHashed, _ := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	user.PasswordHash = string(newHashed)
-	user.ResetToken = ""
+	user.ResetOTP = ""
 	database.DB.Save(&user)
 
 	c.JSON(http.StatusOK, gin.H{"message": "password has been reset"})
