@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -186,7 +185,7 @@ func ForgotPassword(c *gin.Context) {
 	}
 
 	var req Body
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.BindJSON(&req); err != nil {
 
 		return
 	}
@@ -208,11 +207,11 @@ func ForgotPassword(c *gin.Context) {
 	user.ResetExpiry = time.Now().Add(15 * time.Minute)
 	database.DB.Save(&user)
 
-	fmt.Println("Password Reset OTP:", otp)
+	go utils.SendEmail(user.Email, "Password Reset OTP:",
+		"Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes.")
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":   " OTP has been sent to your email",
-		"reset_otp": otp, // In real application, do not send OTP in response
+		"message": " OTP has been sent to your email",
 	})
 }
 
