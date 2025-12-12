@@ -15,10 +15,10 @@ var DB *gorm.DB
 
 func Connect() {
 	_ = godotenv.Load()
-	host := os.Getenv("HOST")
+	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
-	user := os.Getenv("USER")
-	password := os.Getenv("PASSWORD")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
 	name := os.Getenv("DB_NAME")
 	sslmode := os.Getenv("DB_SSLMODE")
 

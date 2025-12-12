@@ -193,7 +193,7 @@ func ForgotPassword(c *gin.Context) {
 	var user models.User
 	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		// To prevent email enumeration, respond with success even if user not found
-		c.JSON(http.StatusOK, gin.H{"message": "if the email exists, a reset link has been sent"})
+		c.JSON(http.StatusOK, gin.H{"message": "if the email exists, OTP has been sent"})
 		return
 	}
 
@@ -207,8 +207,11 @@ func ForgotPassword(c *gin.Context) {
 	user.ResetExpiry = time.Now().Add(15 * time.Minute)
 	database.DB.Save(&user)
 
-	go utils.SendEmail(user.Email, "Password Reset OTP:",
-		"Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes.")
+	if err := utils.SendEmail(user.Email, "Password Reset OTP:",
+		"Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes."); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send OTP email"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": " OTP has been sent to your email",
