@@ -207,11 +207,8 @@ func ForgotPassword(c *gin.Context) {
 	user.ResetExpiry = time.Now().Add(15 * time.Minute)
 	database.DB.Save(&user)
 
-	if err := utils.SendEmail(user.Email, "Password Reset OTP:",
-		"Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes."); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send OTP email"})
-		return
-	}
+	go utils.SendEmail(user.Email, "Password Reset OTP:",
+		"Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes.")
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": " OTP has been sent to your email",
