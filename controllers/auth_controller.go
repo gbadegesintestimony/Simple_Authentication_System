@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -192,10 +193,10 @@ func ForgotPassword(c *gin.Context) {
 
 	var user models.User
 	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
-		// To prevent email enumeration, respond with success even if user not found
-		c.JSON(http.StatusOK, gin.H{"message": "if the email exists, OTP has been sent"})
+		c.JSON(http.StatusOK, gin.H{"message": err.Error()})
 		return
 	}
+	log.Printf("User found: %v", user.Email)
 
 	otp, err := utils.GenerateOTP()
 	if err != nil {
@@ -208,7 +209,10 @@ func ForgotPassword(c *gin.Context) {
 	database.DB.Save(&user)
 
 	go utils.SendEmail(user.Email, "Password Reset OTP:",
-		"Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes.")
+		"Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes. If you did not request this, please ignore this email.")
+
+	// utils.SendEmail(user.Email, "Password Reset OTP",
+	// 	"Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes.\nIf you did not request this, please ignore this email.")
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": " OTP has been sent to your email",
