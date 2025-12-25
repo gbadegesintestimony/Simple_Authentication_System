@@ -2,6 +2,8 @@ package utils
 
 import (
 	"crypto/tls"
+	"fmt"
+	"log"
 	"net/smtp"
 	"os"
 )
@@ -11,6 +13,14 @@ func SendEmail(to, subject, body string) error {
 	smtpPort := os.Getenv("SMTP_PORT")
 	smtpPass := os.Getenv("SMTP_PASS")
 	smtpEmail := os.Getenv("SMTP_EMAIL")
+
+	log.Printf("📧 Email Config - Host: %s, Port: %s, From: %s, To: %s",
+		smtpHost, smtpPort, smtpEmail, to)
+
+	// Check if env variables are loaded
+	if smtpHost == "" || smtpPort == "" || smtpPass == "" || smtpEmail == "" {
+		return fmt.Errorf("SMTP configuration missing")
+	}
 
 	msg := []byte(
 		"From: " + smtpEmail + "\r\n" +
