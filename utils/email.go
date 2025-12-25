@@ -3,7 +3,7 @@ package utils
 import (
 	"crypto/tls"
 	"fmt"
-	"log"
+	"net"
 	"net/smtp"
 	"os"
 )
@@ -11,49 +11,35 @@ import (
 func SendEmail(to, subject, body string) error {
 	smtpHost := os.Getenv("SMTP_HOST")
 	smtpPort := os.Getenv("SMTP_PORT")
-	smtpPass := os.Getenv("SMTP_PASS")
 	smtpEmail := os.Getenv("SMTP_EMAIL")
+	smtpPass := os.Getenv("SMTP_PASS")
 
-	log.Printf("📧 Email Config - Host: %s, Port: %s, From: %s, To: %s",
-		smtpHost, smtpPort, smtpEmail, to)
-
-	// Check if env variables are loaded
-	if smtpHost == "" || smtpPort == "" || smtpPass == "" || smtpEmail == "" {
-		return fmt.Errorf("SMTP configuration missing")
+	if smtpHost == "" || smtpPort == "" || smtpEmail == "" || smtpPass == "" {
+		return fmt.Errorf("SMTP environment variables not set")
 	}
 
-	msg := []byte(
-		"From: " + smtpEmail + "\r\n" +
-			"To: " + to + "\r\n" +
-			"Subject: " + subject + "\r\n" +
-			"MIME-Version: 1.0\r\n" +
-			"Content-Type: text/plain; charset=\"UTF-8\"\r\n\r\n" +
-			body,
-	)
+	addr := net.JoinHostPort(smtpHost, smtpPort)
 
-	auth := smtp.PlainAuth("", smtpEmail, smtpPass, smtpHost)
-
-	// 1. Connect
-	client, err := smtp.Dial(smtpHost + ":" + smtpPort)
-	if err != nil {
-		return err
-	}
-
-	// 2. Upgrade to TLS (THIS IS THE FIX)
 	tlsConfig := &tls.Config{
 		ServerName: smtpHost,
 	}
 
-	if err = client.StartTLS(tlsConfig); err != nil {
+	conn, err := tls.Dial("tcp", addr, tlsConfig)
+	if err != nil {
 		return err
 	}
 
-	// 3. Authenticate
+	client, err := smtp.NewClient(conn, smtpHost)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	auth := smtp.PlainAuth("", smtpEmail, smtpPass, smtpHost)
 	if err = client.Auth(auth); err != nil {
 		return err
 	}
 
-	// 4. Send email
 	if err = client.Mail(smtpEmail); err != nil {
 		return err
 	}
@@ -61,18 +47,25 @@ func SendEmail(to, subject, body string) error {
 		return err
 	}
 
-	writer, err := client.Data()
+	w, err := client.Data()
 	if err != nil {
 		return err
 	}
 
-	_, err = writer.Write(msg)
-	if err != nil {
+	msg := []byte(
+		"From: " + smtpEmail + "\r\n" +
+			"To: " + to + "\r\n" +
+			"Subject: " + subject + "\r\n" +
+			"MIME-Version: 1.0\r\n" +
+			"Content-Type: text/plain; charset=UTF-8\r\n\r\n" +
+			body,
+	)
+
+	if _, err = w.Write(msg); err != nil {
 		return err
 	}
 
-	err = writer.Close()
-	if err != nil {
+	if err = w.Close(); err != nil {
 		return err
 	}
 

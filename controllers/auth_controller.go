@@ -187,12 +187,16 @@ func ForgotPassword(c *gin.Context) {
 
 	var req Body
 	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+
 		return
 	}
 
 	var user models.User
 	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		// To prevent email enumeration, respond with success even if user not found
 		c.JSON(http.StatusOK, gin.H{"message": err.Error()})
 		return
 	}
@@ -204,32 +208,26 @@ func ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	log.Printf("OTP Generated: %s", otp)
-
 	user.ResetOTP = otp
 	user.ResetExpiry = time.Now().Add(15 * time.Minute)
-	if err := database.DB.Save(&user).Error; err != nil {
-		log.Printf("Failed to save user: %v", err)
+	database.DB.Save(&user)
+
+	if err := utils.SendEmail(
+		user.Email,
+		"Password Reset OTP",
+		"Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes.",
+	); err != nil {
+
+		log.Println("SMTP ERROR:", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to send OTP email",
+		})
+		return
 	}
 
-	go func() {
-		err := utils.SendEmail(user.Email, "Password Reset OTP",
-			"Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes. If you did not request this, please ignore this email.")
-		if err != nil {
-			log.Printf("❌ Email sending FAILED: %v", err)
-		} else {
-			log.Printf("✅ Email sent successfully to: %s", user.Email)
-		}
-	}()
-
-	// go utils.SendEmail(user.Email, "Password Reset OTP:",
-	// "Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes. If you did not request this, please ignore this email.")
-
-	// utils.SendEmail(user.Email, "Password Reset OTP",
-	// 	"Your OTP for password reset is: "+otp+"\nIt expires in 15 minutes.\nIf you did not request this, please ignore this email.")
-
 	c.JSON(http.StatusOK, gin.H{
-		"message": " OTP has been sent to your email",
+		"message": "OTP has been sent to your email",
 	})
 }
 
