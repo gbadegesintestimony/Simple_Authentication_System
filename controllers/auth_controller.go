@@ -197,7 +197,7 @@ func ForgotPassword(c *gin.Context) {
 	var user models.User
 	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		// To prevent email enumeration, respond with success even if user not found
-		c.JSON(http.StatusOK, gin.H{"message": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"message": "If email exists, OTP has been sent"})
 		return
 	}
 	log.Printf("User found: %v", user.Email)

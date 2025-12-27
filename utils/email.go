@@ -1,73 +1,39 @@
 package utils
 
 import (
-	"crypto/tls"
 	"fmt"
-	"net"
-	"net/smtp"
+	"log"
 	"os"
+
+	"github.com/resend/resend-go/v2"
 )
 
 func SendEmail(to, subject, body string) error {
-	smtpHost := os.Getenv("SMTP_HOST")
-	smtpPort := os.Getenv("SMTP_PORT")
-	smtpEmail := os.Getenv("SMTP_EMAIL")
-	smtpPass := os.Getenv("SMTP_PASS")
+	apiKey := os.Getenv("RESEND_API_KEY")
 
-	if smtpHost == "" || smtpPort == "" || smtpEmail == "" || smtpPass == "" {
-		return fmt.Errorf("SMTP environment variables not set")
+	if apiKey == "" {
+		log.Printf("RESEND_API_KEY not set in environment")
+		return fmt.Errorf("RESEND_API_KEY not set")
 	}
 
-	addr := net.JoinHostPort(smtpHost, smtpPort)
+	log.Printf("Sending email to: %s via Resend", to)
 
-	tlsConfig := &tls.Config{
-		ServerName: smtpHost,
+	client := resend.NewClient(apiKey)
+
+	params := &resend.SendEmailRequest{
+		From:    "Password Reset <onboarding@resend.dev>",
+		To:      []string{to},
+		Subject: subject,
+		Text:    body,
 	}
 
-	conn, err := tls.Dial("tcp", addr, tlsConfig)
+	sent, err := client.Emails.Send(params)
 	if err != nil {
+		log.Printf("Failed to send email via Resend: %v", err)
 		return err
 	}
 
-	client, err := smtp.NewClient(conn, smtpHost)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	auth := smtp.PlainAuth("", smtpEmail, smtpPass, smtpHost)
-	if err = client.Auth(auth); err != nil {
-		return err
-	}
-
-	if err = client.Mail(smtpEmail); err != nil {
-		return err
-	}
-	if err = client.Rcpt(to); err != nil {
-		return err
-	}
-
-	w, err := client.Data()
-	if err != nil {
-		return err
-	}
-
-	msg := []byte(
-		"From: " + smtpEmail + "\r\n" +
-			"To: " + to + "\r\n" +
-			"Subject: " + subject + "\r\n" +
-			"MIME-Version: 1.0\r\n" +
-			"Content-Type: text/plain; charset=UTF-8\r\n\r\n" +
-			body,
-	)
-
-	if _, err = w.Write(msg); err != nil {
-		return err
-	}
-
-	if err = w.Close(); err != nil {
-		return err
-	}
-
-	return client.Quit()
+	log.Printf(" Email sent successfully!")
+	log.Printf(" Email ID: %s", sent.Id)
+	return nil
 }
