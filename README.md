@@ -14,6 +14,12 @@ Structure
 Environment
 Copy `.env.example` to `.env` and fill in DB credentials and JWT secret.
 
+Email Configuration
+Email sending is implemented using the Resend API (https://resend.com/), which provides transactional email services over SMTP. The system sends OTPs for password reset via email.
+
+- Set `RESEND_API_KEY` in your `.env` file to enable email functionality.
+- The `.env.example` includes commented SMTP settings (e.g., for Gmail) if you prefer direct SMTP implementation instead of Resend.
+
 Run (PowerShell)
 
 ```powershell

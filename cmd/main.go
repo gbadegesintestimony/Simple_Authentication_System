@@ -31,7 +31,6 @@ func main() {
 	if port == "" {
 		port = "8080" // default port if not specified
 	}
-
 	log.Printf("Server starting on port %s", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
